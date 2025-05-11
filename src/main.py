@@ -33,6 +33,28 @@ def text_node_to_html_node(text_node):
             raise Exception("Invalid text_type")
 
 
+def split_nodes_delimiter(old_nodes, delimiter, text_type):
+    new_nodes = []
+    for each in old_nodes:
+        if each.text_type is not TextType.TEXT:
+            new_nodes.append(each)
+        else:
+            if each.text.find(delimiter) == -1:
+                new_nodes.append(each)
+            else:
+                temp_list = each.text.split(delimiter)
+                if len(temp_list) % 2 == 0:
+                    raise Exception("No closing delimiter detected")
+                for i in range(0, len(temp_list)):
+                    if temp_list[i] == "":
+                        pass
+                    elif i % 2 == 0:
+                        new_nodes.append(TextNode(temp_list[i], TextType.TEXT))
+                    else:
+                        new_nodes.append(TextNode(temp_list[i], text_type))
+    return new_nodes
+
+
 
 
 
