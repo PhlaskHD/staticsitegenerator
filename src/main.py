@@ -1,5 +1,6 @@
 from textnode import *
 from htmlnode import *
+import re
 
 def main():
     tester = TextNode("testing123", TextType.LINK, "fakeurl.com")
@@ -55,9 +56,72 @@ def split_nodes_delimiter(old_nodes, delimiter, text_type):
     return new_nodes
 
 
+def extract_markdown_images(text):
+    return re.findall(r"!\[([^\[\]]*)\]\(([^\(\)]*)\)", text)
+
+def extract_markdown_links(text):
+    return re.findall(r"(?<!!)\[([^\[\]]*)\]\(([^\(\)]*)\)", text)
+
+def split_nodes_image(old_nodes):
+    new_nodes = []
+    for each in old_nodes:
+        if each.text_type != TextType.TEXT:
+            new_nodes.append(each)
+            continue
+        tups = extract_markdown_images(each.text)
+        if tups == []:
+            new_nodes.append(each)
+            continue
+        else:
+            remaining_text = each.text
+            for i in range(len(tups)):
+                alt, img = tups[i]
+                split_text = remaining_text.split(f"![{alt}]({img})", 1)
+                if split_text[0] == "":
+                    pass
+                else:
+                    new_nodes.append(TextNode(split_text[0], TextType.TEXT))
+                new_nodes.append(TextNode(alt, TextType.IMAGE, img))
+                if i == len(tups)-1 and split_text[1] != "":
+                    new_nodes.append(TextNode(split_text[1], TextType.TEXT))
+                remaining_text = split_text[1]
+    return new_nodes
+
+            
 
 
 
+def split_nodes_link(old_nodes):
+    new_nodes = []
+    for each in old_nodes:
+        if each.text_type != TextType.TEXT:
+            new_nodes.append(each)
+            continue
+        tups = extract_markdown_links(each.text)
+        if tups == []:
+            new_nodes.append(each)
+            continue
+        else:
+            remaining_text = each.text
+            for i in range(len(tups)):
+                text, url = tups[i]
+                split_text = remaining_text.split(f"[{text}]({url})", 1)
+                if split_text[0] == "":
+                    pass
+                else:
+                    new_nodes.append(TextNode(split_text[0], TextType.TEXT))
+                new_nodes.append(TextNode(text, TextType.LINK, url))
+                if i == len(tups)-1 and split_text[1] != "":
+                    new_nodes.append(TextNode(split_text[1], TextType.TEXT))
+                remaining_text = split_text[1]
+    return new_nodes
 
+
+def text_to_textnodes(text):
+    node = [TextNode(text, TextType.TEXT)]
+    bold_nodes = split_nodes_delimiter(node, "**", TextType.BOLD)
+    italics_nodes = split_nodes_delimiter(bold_nodes, "_", TextType.ITALIC)
+    code_nodes = split_nodes_delimiter(italics_nodes, "`", TextType.CODE)
+    return split_nodes_link(split_nodes_image(code_nodes))
 
 main()
