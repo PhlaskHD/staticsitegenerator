@@ -1,12 +1,13 @@
 from textnode import *
 from htmlnode import *
 from markdowntohtml import *
-import re, os, shutil
+import re, os, shutil, sys
 
 def main():
-    static_to_public("static", "public")
+    basepath = sys.argv[1] if len(sys.argv) > 1 else "/"
+    static_to_public("static", "docs")
     
-    generate_pages_recursive("content", "template.html", "public")
+    generate_pages_recursive("content", "template.html", "docs", basepath)
 
 
 
@@ -31,7 +32,7 @@ def extract_title(markdown):
         else:
             raise Exception("No h1 header")
         
-def generate_page(from_path, template_path, dest_path):
+def generate_page(from_path, template_path, dest_path, basepath):
     print(f"Generating page from {from_path} to {dest_path} using {template_path}")
     with open(from_path) as file:
         markdown_raw = file.read()
@@ -42,13 +43,15 @@ def generate_page(from_path, template_path, dest_path):
     title = extract_title(markdown_raw)
     final_html = template_raw.replace("{{ Title }}", title)
     final_html = final_html.replace("{{ Content }}", markdown_node)
+    final_html = final_html.replace('href="/', f'href="{basepath}')
+    final_html = final_html.replace('src="/', f'src="{basepath}')
     dest_dir = os.path.dirname(dest_path)
     if dest_dir:
         os.makedirs(dest_dir, exist_ok=True)
     with open(dest_path, "w") as file:
         file.write(final_html)
 
-def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path, basepath):
     # List all entries in the directory
     entries = os.listdir(dir_path_content)
     
@@ -69,7 +72,7 @@ def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
             os.makedirs(os.path.dirname(dest_path), exist_ok=True)
             
             # Generate the HTML page using your existing function
-            generate_page(full_path, template_path, dest_path)
+            generate_page(full_path, template_path, dest_path, basepath)
             
         elif os.path.isdir(full_path):
             # It's a directory - recursively process it
@@ -79,6 +82,6 @@ def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
             os.makedirs(new_dest_dir, exist_ok=True)
             
             # Recursive call
-            generate_pages_recursive(full_path, template_path, new_dest_dir)
+            generate_pages_recursive(full_path, template_path, new_dest_dir, basepath)
 
 main()
